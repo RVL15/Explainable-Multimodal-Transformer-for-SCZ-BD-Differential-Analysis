@@ -232,15 +232,17 @@ async def analyze_multimodal_differential_evidence(
 
     # Enforce task availability: SCZ vs BD requires genuine authorized B-SNIP data and checkpoint
     if resolved_task == "SCZ_VS_BD" and eeg_file is not None:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "SCZ vs BD differential classification is unavailable: B-SNIP 1 clinical dataset is protected "
-                "under NIH NDA Data Use Certification and not present in this local environment. "
-                "Healthy controls cannot be substituted for bipolar participants, and no verified SCZ-vs-BD "
-                "checkpoint exists. Model inference for SCZ vs BD is withheld until authorized data is provided."
+        target_cp = CHECKPOINTS_DIR / "scz_bd_model.pt"
+        if not target_cp.exists():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "SCZ vs BD differential classification is unavailable: B-SNIP 1 clinical dataset is protected "
+                    "under NIH NDA Data Use Certification and not present in this local environment. "
+                    "Healthy controls cannot be substituted for bipolar participants, and no verified SCZ-vs-BD "
+                    "checkpoint (scz_bd_model.pt) exists. Model inference for SCZ vs BD is withheld until authorized data is provided."
+                )
             )
-        )
 
     # 2. Resolve MRI modality
     mri_tensor = None
@@ -270,11 +272,21 @@ async def analyze_multimodal_differential_evidence(
         _, clin_vec = _generate_synthetic_phenotypic_profiles(sub_diag)
         clinical_tensor = torch.from_numpy(clin_vec)
 
-    # If EEG recording is present and task is SZ_VS_HC, run genuine PyTorch inference via verified best_model.pt
-    if clean_windows is not None and len(clean_windows) > 0 and resolved_task in ["SZ_VS_HC", "SZ_VS_HC_TECH_VAL"]:
-        target_cp = CHECKPOINTS_DIR / "best_model.pt"
-        if not target_cp.exists():
-            raise HTTPException(status_code=503, detail="SZ vs HC model checkpoint (best_model.pt) not found.")
+    # If EEG recording is present, run genuine PyTorch inference via task-specific verified checkpoint
+    if clean_windows is not None and len(clean_windows) > 0 and (
+        resolved_task in ["SZ_VS_HC", "SZ_VS_HC_TECH_VAL"] or
+        (resolved_task == "SCZ_VS_BD" and (CHECKPOINTS_DIR / "scz_bd_model.pt").exists())
+    ):
+        if resolved_task in ["SZ_VS_HC", "SZ_VS_HC_TECH_VAL"]:
+            target_cp = CHECKPOINTS_DIR / "best_model.pt"
+            if not target_cp.exists():
+                raise HTTPException(status_code=503, detail="SZ vs HC model checkpoint (best_model.pt) not found.")
+            active_task_id = "SZ_VS_HC"
+        elif resolved_task == "SCZ_VS_BD":
+            target_cp = CHECKPOINTS_DIR / "scz_bd_model.pt"
+            active_task_id = "SCZ_VS_BD"
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported classification task: {resolved_task}")
 
         state = torch.load(str(target_cp), map_location="cpu", weights_only=False)
         eeg_model = EEGCNNTransformer(
@@ -298,7 +310,7 @@ async def analyze_multimodal_differential_evidence(
         pred_res = eeg_model.predict_with_uncertainty(
             eeg_tensor,
             uncertainty_threshold=uncertainty_threshold,
-            target_task="SZ_VS_HC"
+            target_task=active_task_id
         )
 
         target_cls = 0 if pred_res["raw_label"] in ["SZ", "SCZ"] else 1
@@ -319,18 +331,28 @@ async def analyze_multimodal_differential_evidence(
             })
         top_channels = [c["channel"] for c in eeg_channel_attributions[:4]]
 
-        p_sz = pred_res["prob_sz"]
-        p_hc = pred_res["prob_hc"]
+        if active_task_id == "SCZ_VS_BD":
+            p_scz = pred_res.get("prob_scz", 0.5)
+            p_bd = pred_res.get("prob_bd", 0.5)
+            p_sz = p_scz
+            p_hc = p_bd
+            margin = round(abs(p_scz - p_bd), 4)
+        else:
+            p_sz = pred_res.get("prob_sz", 0.5)
+            p_hc = pred_res.get("prob_hc", 0.5)
+            p_scz = p_sz
+            p_bd = p_hc
+            margin = round(abs(p_sz - p_hc), 4)
+
         confidence = pred_res["confidence"]
         is_uncertain = pred_res["is_uncertain"]
         predicted_label = pred_res["predicted_label"]
         raw_label = pred_res["raw_label"]
-        margin = round(abs(p_sz - p_hc), 4)
 
         modality_evidence = {
             "EEG": {
-                "prob_scz": p_sz,
-                "prob_bd": p_hc,
+                "prob_scz": p_scz,
+                "prob_bd": p_bd,
                 "prob_sz": p_sz,
                 "prob_hc": p_hc,
                 "favored_diagnosis": raw_label,
