@@ -25,8 +25,11 @@ def list_analysis_history(
         params: List[Any] = []
 
         if target_task:
-            query += " AND target_task = ?"
-            params.append(target_task)
+            if target_task in ["SZ_VS_HC", "SZ_VS_HC_TECH_VAL"]:
+                query += " AND target_task IN ('SZ_VS_HC', 'SZ_VS_HC_TECH_VAL')"
+            else:
+                query += " AND target_task = ?"
+                params.append(target_task)
 
         if search:
             query += " AND (filename LIKE ? OR predicted_label LIKE ? OR id LIKE ?)"
@@ -43,6 +46,11 @@ def list_analysis_history(
         for r in rows:
             rec = dict(r)
             rec["is_uncertain"] = bool(rec["is_uncertain"])
+            # Provide task-correct probabilities
+            p_0 = rec.get("prob_scz", 0.0)
+            p_1 = rec.get("prob_bd", 0.0)
+            rec["prob_sz"] = p_0
+            rec["prob_hc"] = p_1
             try:
                 rec["top_channels"] = json.loads(rec["top_channels"] or "[]")
             except Exception:
@@ -99,6 +107,8 @@ def get_history_record(record_id: str):
 
         rec = dict(row)
         rec["is_uncertain"] = bool(rec["is_uncertain"])
+        rec["prob_sz"] = rec.get("prob_scz", 0.0)
+        rec["prob_hc"] = rec.get("prob_bd", 0.0)
         try:
             rec["top_channels"] = json.loads(rec["top_channels"] or "[]")
         except Exception:

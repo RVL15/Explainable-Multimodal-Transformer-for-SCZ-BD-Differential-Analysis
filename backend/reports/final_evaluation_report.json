@@ -1,0 +1,76 @@
+{
+  "model_checkpoint": "backend/checkpoints/best_model.pt",
+  "model_architecture": "EEGCNNTransformer (1D Temporal/Spatial Conv + 4-Head Transformer Encoder + Attentive Subject Pooler)",
+  "target_task": "SZ_VS_HC",
+  "class_mapping": {
+    "SZ": 0,
+    "HC": 1
+  },
+  "held_out_test_participants": 25,
+  "held_out_sz_count": 12,
+  "held_out_hc_count": 13,
+  "unconstrained_evaluation": {
+    "description": "Full held-out test set evaluated with threshold = 0.50 (no uncertainty rejection)",
+    "evaluated_participants": 25,
+    "accuracy": 0.72,
+    "precision": 0.6875,
+    "recall_sensitivity": 0.8462,
+    "specificity": 0.5833,
+    "f1_score": 0.7586,
+    "roc_auc": 0.8718,
+    "confusion_matrix": {
+      "matrix": [
+        [
+          7,
+          5
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "tn_sz_correct": 7,
+      "fp_sz_misclassified_as_hc": 5,
+      "fn_hc_misclassified_as_sz": 2,
+      "tp_hc_correct": 11,
+      "total_participants": 25
+    }
+  },
+  "uncertainty_gated_evaluation": {
+    "description": "Held-out test set evaluated with uncertainty threshold = 0.65",
+    "total_test_participants": 25,
+    "accepted_participants": 21,
+    "uncertain_participants_rejected": 4,
+    "uncertain_participant_ids": [
+      "ASEEG_SZ_40",
+      "ASEEG_HC_24",
+      "ASEEG_HC_29",
+      "ASEEG_HC_23"
+    ],
+    "coverage": 0.84,
+    "accuracy_on_accepted": 0.7619,
+    "precision_on_accepted": 0.6667,
+    "recall_sensitivity_on_accepted": 1.0,
+    "specificity_on_accepted": 0.5455,
+    "f1_score_on_accepted": 0.8,
+    "roc_auc": 0.8718,
+    "confusion_matrix_on_accepted": {
+      "matrix": [
+        [
+          6,
+          5
+        ],
+        [
+          0,
+          10
+        ]
+      ],
+      "tn_sz_correct": 6,
+      "fp_sz_misclassified_as_hc": 5,
+      "fn_hc_misclassified_as_sz": 0,
+      "tp_hc_correct": 10,
+      "accepted_total": 21,
+      "discrepancy_explanation": "The confusion matrix sum of 21 represents the accepted/covered test participants under threshold 0.65. The remaining 4 participants (ASEEG_SZ_40, ASEEG_HC_24, ASEEG_HC_29, ASEEG_HC_23) were flagged as UNCERTAIN due to low confidence margins (< 0.65) and withheld from forced binary assignment, giving 21 accepted + 4 uncertain = 25 total test participants."
+    }
+  }
+}

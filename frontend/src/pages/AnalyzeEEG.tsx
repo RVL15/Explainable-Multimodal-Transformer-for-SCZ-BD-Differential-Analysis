@@ -162,11 +162,11 @@ export const AnalyzeEEG: React.FC = () => {
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-900">1. Schizophrenia vs. Healthy Controls</span>
+              <span className="text-xs font-bold text-slate-900">1. Schizophrenia vs. Healthy Controls (SZ vs. HC)</span>
               <StatusBadge label={szHcStatus} size="sm" />
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Trained on 97 verified ASEEG benchmark participants (500 Hz, 19-Ch). 80.0% held-out test accuracy.
+              Trained on 97 verified ASEEG benchmark participants. Evaluated on 25 held-out test participants: 72.0% accuracy (76.2% under uncertainty rejection, 84% coverage, ROC-AUC 0.8718).
             </p>
             <div className="mt-3 text-[11px] text-indigo-700 font-semibold flex items-center">
               Active Checkpoint: best_model.pt (PyTorch CNN–Transformer)
@@ -189,14 +189,14 @@ export const AnalyzeEEG: React.FC = () => {
             }`}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-900">2. Schizophrenia vs. Bipolar Disorder</span>
+              <span className="text-xs font-bold text-slate-900">2. Schizophrenia vs. Bipolar Disorder (SCZ vs. BD)</span>
               <StatusBadge label={sczBdStatus} size="sm" />
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
               Primary clinical differential task.
             </p>
             <div className="mt-3 p-2 bg-amber-50/80 rounded-lg border border-amber-200/80 text-[11px] text-amber-900 leading-snug">
-              SCZ vs. BD prediction is currently unavailable because the required authorized dataset or trained model is not ready.
+              SCZ vs. BD prediction is unavailable: B-SNIP 1 clinical dataset is protected by NIH NDA Data Use Certification and not present locally. Healthy controls cannot be substituted for bipolar participants.
             </div>
           </div>
         </div>
@@ -447,10 +447,15 @@ export const AnalyzeEEG: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-[11px] mb-1">
                     <span className="font-semibold text-slate-700">Schizophrenia (SZ)</span>
-                    <span className="font-mono font-bold text-indigo-700">{(analysisResult.prob_scz * 100).toFixed(1)}%</span>
+                    <span className="font-mono font-bold text-indigo-700">
+                      {(((analysisResult.prob_sz ?? analysisResult.prob_scz) ?? 0) * 100).toFixed(1)}%
+                    </span>
                   </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${analysisResult.prob_scz * 100}%` }} />
+                    <div
+                      className="h-full bg-indigo-600 rounded-full"
+                      style={{ width: `${((analysisResult.prob_sz ?? analysisResult.prob_scz) ?? 0) * 100}%` }}
+                    />
                   </div>
                 </div>
 
@@ -459,10 +464,15 @@ export const AnalyzeEEG: React.FC = () => {
                     <span className="font-semibold text-slate-700">
                       {selectedTask === 'SZ_VS_HC' ? 'Healthy Control (HC)' : 'Bipolar Disorder (BD)'}
                     </span>
-                    <span className="font-mono font-bold text-emerald-700">{(analysisResult.prob_bd * 100).toFixed(1)}%</span>
+                    <span className="font-mono font-bold text-emerald-700">
+                      {(((analysisResult.prob_hc ?? analysisResult.prob_bd) ?? 0) * 100).toFixed(1)}%
+                    </span>
                   </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${analysisResult.prob_bd * 100}%` }} />
+                    <div
+                      className="h-full bg-emerald-600 rounded-full"
+                      style={{ width: `${((analysisResult.prob_hc ?? analysisResult.prob_bd) ?? 0) * 100}%` }}
+                    />
                   </div>
                 </div>
               </div>

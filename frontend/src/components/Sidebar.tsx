@@ -51,29 +51,16 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-100 bg-slate-50/70 space-y-3">
-        <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-slate-800 mb-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Research Prediction</span>
-          </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            SCZ–BD Differential Analysis
-          </p>
-          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-            16-Ch 10–20 • 250 Hz Standard
-          </div>
+      <div className="p-4 border-t border-slate-100 bg-slate-50/70">
+        <div className="flex items-center space-x-2 text-xs font-semibold text-slate-800 mb-1">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>Research Prediction</span>
         </div>
-
-        {/* Discreet diagnostics link for viva demonstration */}
-        <div className="pt-2 border-t border-slate-200/60">
-          <Link
-            to="/diagnostics"
-            className="flex items-center text-[11px] text-slate-500 hover:text-slate-800 transition"
-          >
-            <Server className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-            <span>System Diagnostics</span>
-          </Link>
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          SZ vs. HC Technical Validation
+        </p>
+        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+          16-Ch 10–20 • 250 Hz Standard
         </div>
       </div>
     </aside>

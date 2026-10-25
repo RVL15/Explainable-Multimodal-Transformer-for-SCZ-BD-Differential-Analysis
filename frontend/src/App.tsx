@@ -22,30 +22,26 @@ export function App() {
           <Sidebar />
           <main className="flex-1 bg-slate-50/60 overflow-y-auto">
             <Routes>
-              {/* 1. Page 1: Home / Prediction */}
+              {/* Core User-Facing Pages */}
               <Route path="/" element={<AnalyzeEEG />} />
               <Route path="/predict" element={<Navigate to="/" replace />} />
               <Route path="/analyze" element={<Navigate to="/" replace />} />
 
-              {/* 2. Page 2: Prediction History */}
               <Route path="/history" element={<AnalysisHistory />} />
 
-              {/* 3. Page 3: Explainability */}
               <Route path="/explainability" element={<Explainability />} />
               <Route path="/evidence" element={<Navigate to="/explainability" replace />} />
               <Route path="/xai" element={<Navigate to="/explainability" replace />} />
 
-              {/* Optional Internal Diagnostics (viva telemetry & audit) */}
-              <Route path="/diagnostics" element={<OverviewDashboard />} />
-              <Route path="/overview" element={<Navigate to="/diagnostics" replace />} />
-              <Route path="/settings" element={<Settings />} />
-
-              {/* Internal research & experiment routes */}
-              <Route path="/reports" element={<ResearchReports />} />
-              <Route path="/datasets" element={<DatasetManager />} />
-              <Route path="/explorer" element={<SignalExplorer />} />
-              <Route path="/evaluation" element={<ModelEvaluation />} />
-              <Route path="/training" element={<ModelLab />} />
+              {/* Redirect legacy developer/training paths to prediction application */}
+              <Route path="/diagnostics" element={<Navigate to="/" replace />} />
+              <Route path="/overview" element={<Navigate to="/" replace />} />
+              <Route path="/settings" element={<Navigate to="/" replace />} />
+              <Route path="/reports" element={<Navigate to="/" replace />} />
+              <Route path="/datasets" element={<Navigate to="/" replace />} />
+              <Route path="/explorer" element={<Navigate to="/" replace />} />
+              <Route path="/evaluation" element={<Navigate to="/" replace />} />
+              <Route path="/training" element={<Navigate to="/" replace />} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

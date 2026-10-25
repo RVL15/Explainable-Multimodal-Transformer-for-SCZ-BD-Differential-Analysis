@@ -82,8 +82,8 @@ export const AnalysisHistory: React.FC = () => {
   };
 
   const formatTaskName = (task: string) => {
-    if (task === 'SZ_VS_HC_TECH_VAL') return 'Schizophrenia vs Healthy Control';
-    if (task === 'SCZ_VS_BD') return 'Schizophrenia vs Bipolar Disorder';
+    if (task === 'SZ_VS_HC' || task === 'SZ_VS_HC_TECH_VAL') return 'Schizophrenia vs Healthy Control (SZ vs HC)';
+    if (task === 'SCZ_VS_BD') return 'Schizophrenia vs Bipolar Disorder (SCZ vs BD)';
     return task;
   };
 
@@ -96,16 +96,24 @@ export const AnalysisHistory: React.FC = () => {
         </span>
       );
     }
-    if (pred === 'BIPOLAR' || pred === 'BD') {
+    if (pred === 'UNCERTAIN') {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <HelpCircle className="w-3 h-3 mr-1" />
+          Uncertain
+        </span>
+      );
+    }
+    if (pred === 'BIPOLAR' || pred === 'BD') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
           <Brain className="w-3 h-3 mr-1" />
           Bipolar Disorder
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
         <Brain className="w-3 h-3 mr-1" />
         Schizophrenia
       </span>
@@ -169,8 +177,8 @@ export const AnalysisHistory: React.FC = () => {
             className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
           >
             <option value="ALL">All Diagnostic Tasks</option>
-            <option value="SZ_VS_HC_TECH_VAL">Schizophrenia vs Healthy Control</option>
-            <option value="SCZ_VS_BD">Schizophrenia vs Bipolar Disorder</option>
+            <option value="SZ_VS_HC">Schizophrenia vs Healthy Control (SZ vs HC)</option>
+            <option value="SCZ_VS_BD">Schizophrenia vs Bipolar Disorder (SCZ vs BD)</option>
           </select>
         </div>
       </div>
@@ -381,16 +389,16 @@ export const AnalysisHistory: React.FC = () => {
                 <div className="space-y-2">
                   <div>
                     <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
-                      <span>Schizophrenia (SCZ)</span>
+                      <span>Schizophrenia (SZ)</span>
                       <span className="font-mono">
-                        {((selectedRecord.prob_scz || 0) * 100).toFixed(2)}%
+                        {(((selectedRecord.prob_sz ?? selectedRecord.prob_scz) ?? 0) * 100).toFixed(2)}%
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
                         className="bg-indigo-600 h-2 rounded-full"
                         style={{
-                          width: `${(selectedRecord.prob_scz || 0) * 100}%`,
+                          width: `${((selectedRecord.prob_sz ?? selectedRecord.prob_scz) ?? 0) * 100}%`,
                         }}
                       />
                     </div>
@@ -399,19 +407,19 @@ export const AnalysisHistory: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-[11px] font-semibold text-slate-700 mb-1">
                       <span>
-                        {selectedRecord.target_task === 'SZ_VS_HC_TECH_VAL'
+                        {selectedRecord.target_task === 'SZ_VS_HC' || selectedRecord.target_task === 'SZ_VS_HC_TECH_VAL'
                           ? 'Healthy Control (HC)'
                           : 'Bipolar Disorder (BD)'}
                       </span>
                       <span className="font-mono">
-                        {((selectedRecord.prob_bd || 0) * 100).toFixed(2)}%
+                        {(((selectedRecord.prob_hc ?? selectedRecord.prob_bd) ?? 0) * 100).toFixed(2)}%
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
                         className="bg-emerald-500 h-2 rounded-full"
                         style={{
-                          width: `${(selectedRecord.prob_bd || 0) * 100}%`,
+                          width: `${((selectedRecord.prob_hc ?? selectedRecord.prob_bd) ?? 0) * 100}%`,
                         }}
                       />
                     </div>

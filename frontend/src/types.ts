@@ -283,10 +283,14 @@ export interface FeatureAttributionItem {
 }
 
 export interface MultimodalAnalysisResult {
+  analysis_id?: string;
   subject_id?: string;
   true_label?: string;
   predicted_label: string;
   raw_label: string;
+  target_task?: string;
+  prob_sz?: number;
+  prob_hc?: number;
   prob_scz: number;
   prob_bd: number;
   confidence: number;
@@ -336,6 +340,8 @@ export interface AnalysisHistoryRecord {
   model_version: string;
   predicted_label: string;
   raw_label?: string;
+  prob_sz?: number;
+  prob_hc?: number;
   prob_scz: number;
   prob_bd: number;
   confidence: number;

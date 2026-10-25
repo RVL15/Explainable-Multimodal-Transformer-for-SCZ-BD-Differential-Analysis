@@ -103,12 +103,18 @@ def preprocess_and_window_eeg(
     """
     ch_map = {ch.upper(): i for i, ch in enumerate(channels)}
     aligned = []
+    missing_chs = []
     for tgt in STANDARD_16_CHANNELS:
         if tgt.upper() in ch_map:
             aligned.append(raw_signals[ch_map[tgt.upper()]])
         else:
-            # Zero-pad missing channel
-            aligned.append(np.zeros(raw_signals.shape[1], dtype=np.float64))
+            missing_chs.append(tgt)
+
+    if missing_chs:
+        raise ValueError(
+            f"Recording is missing required standard 10-20 channel(s): {', '.join(missing_chs)}. "
+            f"Required montage: {', '.join(STANDARD_16_CHANNELS)}. Missing channels cannot be fabricated or zero-filled."
+        )
     
     data = np.array(aligned, dtype=np.float64)
 

@@ -225,8 +225,22 @@ async def analyze_multimodal_differential_evidence(
     if not resolved_task:
         if (eeg_file and eeg_file.filename and (eeg_file.filename.lower().startswith("sz") or eeg_file.filename.lower().startswith("n"))) or (target_subject_id and "aseeg" in target_subject_id.lower()):
             resolved_task = "SZ_VS_HC"
+        elif eeg_file:
+            resolved_task = "SZ_VS_HC"
         else:
             resolved_task = "SCZ_VS_BD"
+
+    # Enforce task availability: SCZ vs BD requires genuine authorized B-SNIP data and checkpoint
+    if resolved_task == "SCZ_VS_BD" and eeg_file is not None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "SCZ vs BD differential classification is unavailable: B-SNIP 1 clinical dataset is protected "
+                "under NIH NDA Data Use Certification and not present in this local environment. "
+                "Healthy controls cannot be substituted for bipolar participants, and no verified SCZ-vs-BD "
+                "checkpoint exists. Model inference for SCZ vs BD is withheld until authorized data is provided."
+            )
+        )
 
     # 2. Resolve MRI modality
     mri_tensor = None
@@ -238,7 +252,6 @@ async def analyze_multimodal_differential_evidence(
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid MRI features JSON: {str(e)}")
     elif subject_id and not eeg_file:
-        # If demo subject and no MRI supplied, generate illustrative profile
         sub_diag = true_label or "SCZ"
         mri_vec, _ = _generate_synthetic_phenotypic_profiles(sub_diag)
         mri_tensor = torch.from_numpy(mri_vec)
@@ -257,7 +270,140 @@ async def analyze_multimodal_differential_evidence(
         _, clin_vec = _generate_synthetic_phenotypic_profiles(sub_diag)
         clinical_tensor = torch.from_numpy(clin_vec)
 
-    # 4. Prepare EEG tensor with learned normalization statistics
+    # If EEG recording is present and task is SZ_VS_HC, run genuine PyTorch inference via verified best_model.pt
+    if clean_windows is not None and len(clean_windows) > 0 and resolved_task in ["SZ_VS_HC", "SZ_VS_HC_TECH_VAL"]:
+        target_cp = CHECKPOINTS_DIR / "best_model.pt"
+        if not target_cp.exists():
+            raise HTTPException(status_code=503, detail="SZ vs HC model checkpoint (best_model.pt) not found.")
+
+        state = torch.load(str(target_cp), map_location="cpu", weights_only=False)
+        eeg_model = EEGCNNTransformer(
+            num_channels=16,
+            time_points=WINDOW_SAMPLES,
+            num_classes=2,
+            d_model=state.get("hyperparameters", {}).get("hidden_dim", 64),
+            nhead=state.get("hyperparameters", {}).get("transformer_heads", 4),
+            num_layers=state.get("hyperparameters", {}).get("transformer_layers", 2),
+            dropout=state.get("hyperparameters", {}).get("dropout", 0.2)
+        )
+        eeg_model.load_state_dict(state["model_state_dict"])
+        eeg_model.eval()
+
+        norm_mean = np.array(state["norm_mean"], dtype=np.float32)
+        norm_std = np.array(state["norm_std"], dtype=np.float32)
+
+        norm_w = (clean_windows - norm_mean) / norm_std
+        eeg_tensor = torch.from_numpy(norm_w).float()
+
+        pred_res = eeg_model.predict_with_uncertainty(
+            eeg_tensor,
+            uncertainty_threshold=uncertainty_threshold,
+            target_task="SZ_VS_HC"
+        )
+
+        target_cls = 0 if pred_res["raw_label"] in ["SZ", "SCZ"] else 1
+        _, ch_imp = compute_gradient_attribution(
+            model=eeg_model,
+            eeg_windows=eeg_tensor[:16, :16, :WINDOW_SAMPLES],
+            target_class=target_cls,
+            steps=20
+        )
+        ranked_indices = np.argsort(-ch_imp)
+        eeg_channel_attributions = []
+        for rank, idx in enumerate(ranked_indices):
+            ch_name = STANDARD_16_CHANNELS[idx] if idx < len(STANDARD_16_CHANNELS) else f"Ch_{idx+1}"
+            eeg_channel_attributions.append({
+                "channel": ch_name,
+                "importance_score": round(float(ch_imp[idx]), 4),
+                "rank": rank + 1
+            })
+        top_channels = [c["channel"] for c in eeg_channel_attributions[:4]]
+
+        p_sz = pred_res["prob_sz"]
+        p_hc = pred_res["prob_hc"]
+        confidence = pred_res["confidence"]
+        is_uncertain = pred_res["is_uncertain"]
+        predicted_label = pred_res["predicted_label"]
+        raw_label = pred_res["raw_label"]
+        margin = round(abs(p_sz - p_hc), 4)
+
+        modality_evidence = {
+            "EEG": {
+                "prob_scz": p_sz,
+                "prob_bd": p_hc,
+                "prob_sz": p_sz,
+                "prob_hc": p_hc,
+                "favored_diagnosis": raw_label,
+                "margin": margin
+            }
+        }
+
+        import uuid
+        record_id = f"pred_{uuid.uuid4().hex[:10]}"
+        try:
+            with get_db() as conn:
+                c = conn.cursor()
+                c.execute("""
+                INSERT INTO analysis_history (
+                    id, filename, dataset_id, target_task, model_version,
+                    predicted_label, raw_label, prob_scz, prob_bd, confidence,
+                    uncertainty_threshold, is_uncertain, discordance_penalty, evidence_margin,
+                    top_channels, attributions_json, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', CURRENT_TIMESTAMP)
+                """, (
+                    record_id,
+                    target_subject_id or (eeg_file.filename if eeg_file else "Manual_Input"),
+                    "aseeg" if predicted_label in ["SZ", "HC"] else "custom",
+                    "SZ_VS_HC",
+                    "PyTorch CNN-Transformer v1.0",
+                    predicted_label,
+                    raw_label,
+                    p_sz,
+                    p_hc,
+                    confidence,
+                    uncertainty_threshold,
+                    1 if is_uncertain else 0,
+                    0.0,
+                    margin,
+                    json.dumps(top_channels),
+                    json.dumps(eeg_channel_attributions) if eeg_channel_attributions else None
+                ))
+        except Exception:
+            pass
+
+        return {
+            "analysis_id": record_id,
+            "subject_id": target_subject_id,
+            "true_label": true_label,
+            "predicted_label": predicted_label,
+            "raw_label": raw_label,
+            "target_task": "SZ_VS_HC",
+            "prob_sz": p_sz,
+            "prob_hc": p_hc,
+            "prob_scz": p_sz,
+            "prob_bd": p_hc,
+            "confidence": confidence,
+            "raw_confidence": confidence,
+            "uncertainty_threshold": uncertainty_threshold,
+            "is_uncertain": is_uncertain,
+            "discordance_penalty": 0.0,
+            "evidence_margin": margin,
+            "available_modalities": ["EEG"],
+            "missing_modalities": ["MRI", "CLINICAL"],
+            "modality_evidence": modality_evidence,
+            "modality_agreement": {
+                "status": "SINGLE_MODALITY",
+                "concordance_score": 1.0,
+                "description": "Single-modality neurophysiological EEG prediction using verified CNN-Transformer."
+            },
+            "eeg_channel_attributions": eeg_channel_attributions,
+            "top_contributing_channels": top_channels,
+            "mri_attributions": [],
+            "clinical_attributions": [],
+            "scientific_disclaimer": SCIENTIFIC_LIMITATION_DISCLAIMER
+        }
+
+    # Otherwise fallback to Multimodal Transformer (for cohort subjects with MRI/Clinical features)
     model, norm_stats = _get_active_multimodal_transformer()
     eeg_tensor = None
     if clean_windows is not None and len(clean_windows) > 0:
@@ -273,7 +419,7 @@ async def analyze_multimodal_differential_evidence(
             detail="No modality data provided. Supply an EEG file, database subject_id, MRI features, or Clinical features."
         )
 
-    # 5. Run Multimodal Transformer Inference
+    # Run Multimodal Transformer Inference
     result = model.evaluate_differential_evidence(
         eeg_windows=eeg_tensor,
         mri_features=mri_tensor,
@@ -282,7 +428,7 @@ async def analyze_multimodal_differential_evidence(
         target_task=resolved_task
     )
 
-    # 6. Compute Feature Attributions
+    # Compute Feature Attributions
     eeg_channel_attributions = []
     top_channels = []
     if eeg_tensor is not None:
@@ -296,7 +442,7 @@ async def analyze_multimodal_differential_evidence(
             )
             ranked_indices = np.argsort(-ch_imp)
             for rank, idx in enumerate(ranked_indices):
-                ch_name = channels[idx] if idx < len(channels) else f"Ch_{idx+1}"
+                ch_name = STANDARD_16_CHANNELS[idx] if idx < len(STANDARD_16_CHANNELS) else f"Ch_{idx+1}"
                 eeg_channel_attributions.append({
                     "channel": ch_name,
                     "importance_score": round(float(ch_imp[idx]), 4),
