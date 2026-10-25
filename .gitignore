@@ -12,9 +12,20 @@ node_modules/
 frontend/dist/
 frontend/node_modules/
 
-# Large archive files
+# Large datasets & binaries
+backend/data/aseeg/
+backend/data/bifurcated/
+backend/data/zenodo_14808296/
+backend/data/demo/
 *.rar
 *.zip
+*.mat
+*.edf
+*.bdf
+*.fif
+
+# Keep manifests
+!backend/data/manifests/
 
 # OS
 .DS_Store
