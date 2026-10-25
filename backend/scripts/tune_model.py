@@ -56,6 +56,8 @@ for lr in [5e-4, 3e-4]:
                 best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
         # Evaluate best state on test subjects at subject level
+        if best_state is None:
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
         test_model = EEGCNNTransformer(num_channels=16, time_points=500, num_classes=2, d_model=64)
         test_model.load_state_dict(best_state)
         test_model.eval()
