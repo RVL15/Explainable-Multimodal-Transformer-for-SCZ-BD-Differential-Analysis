@@ -82,11 +82,11 @@ def validate_eeg_array(
             "errors": errors,
             "warnings": warnings,
             "num_channels": signals.shape[0] if signals.ndim >= 1 else 0,
-            "detected_channels": [str(c) for c in channels],
+            "detected_channels": list(channels),
             "standard_10_20_channels_detected": [],
             "num_standard_10_20_channels": 0,
             "selected_model_channels": [],
-            "excluded_channels": [str(c) for c in channels],
+            "excluded_channels": list(channels),
             "missing_required_channels": list(STANDARD_16_CHANNELS),
             "num_samples": 0,
             "sample_rate": sample_rate,
@@ -120,11 +120,11 @@ def validate_eeg_array(
             "errors": errors,
             "warnings": warnings,
             "num_channels": num_channels,
-            "detected_channels": [str(c) for c in channels],
+            "detected_channels": list(channels),
             "standard_10_20_channels_detected": [],
             "num_standard_10_20_channels": 0,
             "selected_model_channels": [],
-            "excluded_channels": [str(c) for c in channels],
+            "excluded_channels": list(channels),
             "missing_required_channels": list(STANDARD_16_CHANNELS),
             "num_samples": num_samples,
             "sample_rate": sample_rate,
@@ -171,7 +171,7 @@ def validate_eeg_array(
         )
 
     # 5. Channel count and naming check
-    str_channels = [str(c).strip() for c in channels]
+    str_channels = [c.strip() for c in channels]
     standard_10_20_detected = [
         c for c in str_channels
         if any(c.upper() == std.upper() for std in STANDARD_10_20_FULL)
