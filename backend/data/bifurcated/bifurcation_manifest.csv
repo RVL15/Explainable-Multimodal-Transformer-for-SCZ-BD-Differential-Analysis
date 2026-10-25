@@ -1,0 +1,100 @@
+filename,subject_id,diagnostic_class,is_scz,validation_status,is_held_out_test,channels,sampling_rate_hz,file_size_kb,relative_path
+sz1.mat,ASEEG_SZ_01,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2642.1,validated\scz\sz1.mat
+sz10.mat,ASEEG_SZ_10,SCZ,YES,VALIDATED,YES,19,500.0,2638.1,validated\scz\sz10.mat
+sz11.mat,ASEEG_SZ_11,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2642.0,validated\scz\sz11.mat
+sz12.mat,ASEEG_SZ_12,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2654.7,validated\scz\sz12.mat
+sz13.mat,ASEEG_SZ_13,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2611.2,validated\scz\sz13.mat
+sz14.mat,ASEEG_SZ_14,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2595.1,validated\scz\sz14.mat
+sz16.mat,ASEEG_SZ_16,SCZ,YES,VALIDATED,YES,19,500.0,2631.8,validated\scz\sz16.mat
+sz17.mat,ASEEG_SZ_17,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2584.8,validated\scz\sz17.mat
+sz2.mat,ASEEG_SZ_02,SCZ,YES,VALIDATED,YES,19,500.0,2618.7,validated\scz\sz2.mat
+sz20.mat,ASEEG_SZ_20,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2636.6,validated\scz\sz20.mat
+sz21.mat,ASEEG_SZ_21,SCZ,YES,VALIDATED,YES,19,500.0,2621.8,validated\scz\sz21.mat
+sz22.mat,ASEEG_SZ_22,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2583.9,validated\scz\sz22.mat
+sz23.mat,ASEEG_SZ_23,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2614.0,validated\scz\sz23.mat
+sz24.mat,ASEEG_SZ_24,SCZ,YES,VALIDATED,YES,19,500.0,2618.4,validated\scz\sz24.mat
+sz25.mat,ASEEG_SZ_25,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2575.2,validated\scz\sz25.mat
+sz26.mat,ASEEG_SZ_26,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2583.5,validated\scz\sz26.mat
+sz27.mat,ASEEG_SZ_27,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2635.5,validated\scz\sz27.mat
+sz28.mat,ASEEG_SZ_28,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2610.6,validated\scz\sz28.mat
+sz29.mat,ASEEG_SZ_29,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2593.1,validated\scz\sz29.mat
+sz3.mat,ASEEG_SZ_03,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2630.9,validated\scz\sz3.mat
+sz30.mat,ASEEG_SZ_30,SCZ,YES,VALIDATED,YES,19,500.0,2638.3,validated\scz\sz30.mat
+sz31.mat,ASEEG_SZ_31,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2653.9,validated\scz\sz31.mat
+sz32.mat,ASEEG_SZ_32,SCZ,YES,VALIDATED,YES,19,500.0,2609.5,validated\scz\sz32.mat
+sz33.mat,ASEEG_SZ_33,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2547.0,validated\scz\sz33.mat
+sz34.mat,ASEEG_SZ_34,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2647.1,validated\scz\sz34.mat
+sz35.mat,ASEEG_SZ_35,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2596.8,validated\scz\sz35.mat
+sz36.mat,ASEEG_SZ_36,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2650.8,validated\scz\sz36.mat
+sz37.mat,ASEEG_SZ_37,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2648.8,validated\scz\sz37.mat
+sz38.mat,ASEEG_SZ_38,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2601.6,validated\scz\sz38.mat
+sz39.mat,ASEEG_SZ_39,SCZ,YES,VALIDATED,YES,19,500.0,2618.0,validated\scz\sz39.mat
+sz40.mat,ASEEG_SZ_40,SCZ,YES,VALIDATED,YES,19,500.0,2646.4,validated\scz\sz40.mat
+sz41.mat,ASEEG_SZ_41,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2632.7,validated\scz\sz41.mat
+sz42.mat,ASEEG_SZ_42,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2616.4,validated\scz\sz42.mat
+sz43.mat,ASEEG_SZ_43,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2635.1,validated\scz\sz43.mat
+sz44.mat,ASEEG_SZ_44,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2630.4,validated\scz\sz44.mat
+sz45.mat,ASEEG_SZ_45,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2645.9,validated\scz\sz45.mat
+sz46.mat,ASEEG_SZ_46,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2630.9,validated\scz\sz46.mat
+sz47.mat,ASEEG_SZ_47,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2574.2,validated\scz\sz47.mat
+sz48.mat,ASEEG_SZ_48,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2647.8,validated\scz\sz48.mat
+sz49.mat,ASEEG_SZ_49,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2613.4,validated\scz\sz49.mat
+sz5.mat,ASEEG_SZ_05,SCZ,YES,VALIDATED,YES,19,500.0,2597.3,validated\scz\sz5.mat
+sz50.mat,ASEEG_SZ_50,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2634.3,validated\scz\sz50.mat
+sz51.mat,ASEEG_SZ_51,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2622.8,validated\scz\sz51.mat
+sz6.mat,ASEEG_SZ_06,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2638.2,validated\scz\sz6.mat
+sz7.mat,ASEEG_SZ_07,SCZ,YES,VALIDATED,NO (TRAIN/VAL),19,500.0,2646.1,validated\scz\sz7.mat
+sz8.mat,ASEEG_SZ_08,SCZ,YES,VALIDATED,YES,19,500.0,2644.6,validated\scz\sz8.mat
+sz9.mat,ASEEG_SZ_09,SCZ,YES,VALIDATED,YES,19,500.0,2585.8,validated\scz\sz9.mat
+n1.mat,ASEEG_HC_01,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2633.0,validated\not_scz\n1.mat
+n10.mat,ASEEG_HC_10,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2607.8,validated\not_scz\n10.mat
+n11.mat,ASEEG_HC_11,HC,NO,VALIDATED,YES,19,500.0,2621.9,validated\not_scz\n11.mat
+n12.mat,ASEEG_HC_12,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2564.8,validated\not_scz\n12.mat
+n13.mat,ASEEG_HC_13,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2618.7,validated\not_scz\n13.mat
+n14.mat,ASEEG_HC_14,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2594.2,validated\not_scz\n14.mat
+n15.mat,ASEEG_HC_15,HC,NO,VALIDATED,YES,19,500.0,2613.7,validated\not_scz\n15.mat
+n16.mat,ASEEG_HC_16,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2587.5,validated\not_scz\n16.mat
+n17.mat,ASEEG_HC_17,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2657.1,validated\not_scz\n17.mat
+n18.mat,ASEEG_HC_18,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2598.9,validated\not_scz\n18.mat
+n19.mat,ASEEG_HC_19,HC,NO,VALIDATED,YES,19,500.0,2599.9,validated\not_scz\n19.mat
+n2.mat,ASEEG_HC_02,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2609.1,validated\not_scz\n2.mat
+n20.mat,ASEEG_HC_20,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2616.8,validated\not_scz\n20.mat
+n21.mat,ASEEG_HC_21,HC,NO,VALIDATED,YES,19,500.0,2601.1,validated\not_scz\n21.mat
+n22.mat,ASEEG_HC_22,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2631.5,validated\not_scz\n22.mat
+n23.mat,ASEEG_HC_23,HC,NO,VALIDATED,YES,19,500.0,2614.2,validated\not_scz\n23.mat
+n24.mat,ASEEG_HC_24,HC,NO,VALIDATED,YES,19,500.0,2583.0,validated\not_scz\n24.mat
+n25.mat,ASEEG_HC_25,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2645.3,validated\not_scz\n25.mat
+n26.mat,ASEEG_HC_26,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2598.4,validated\not_scz\n26.mat
+n27.mat,ASEEG_HC_27,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2640.1,validated\not_scz\n27.mat
+n28.mat,ASEEG_HC_28,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2576.5,validated\not_scz\n28.mat
+n29.mat,ASEEG_HC_29,HC,NO,VALIDATED,YES,19,500.0,2614.8,validated\not_scz\n29.mat
+n3.mat,ASEEG_HC_03,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2620.2,validated\not_scz\n3.mat
+n30.mat,ASEEG_HC_30,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2556.8,validated\not_scz\n30.mat
+n31.mat,ASEEG_HC_31,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2551.2,validated\not_scz\n31.mat
+n32.mat,ASEEG_HC_32,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2636.3,validated\not_scz\n32.mat
+n33.mat,ASEEG_HC_33,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2622.8,validated\not_scz\n33.mat
+n34.mat,ASEEG_HC_34,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2613.9,validated\not_scz\n34.mat
+n35.mat,ASEEG_HC_35,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2563.8,validated\not_scz\n35.mat
+n36.mat,ASEEG_HC_36,HC,NO,VALIDATED,YES,19,500.0,2607.5,validated\not_scz\n36.mat
+n37.mat,ASEEG_HC_37,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2646.2,validated\not_scz\n37.mat
+n38.mat,ASEEG_HC_38,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2643.8,validated\not_scz\n38.mat
+n39.mat,ASEEG_HC_39,HC,NO,VALIDATED,YES,19,500.0,2618.3,validated\not_scz\n39.mat
+n4.mat,ASEEG_HC_04,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2586.7,validated\not_scz\n4.mat
+n40.mat,ASEEG_HC_40,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2635.5,validated\not_scz\n40.mat
+n41.mat,ASEEG_HC_41,HC,NO,VALIDATED,YES,19,500.0,2623.5,validated\not_scz\n41.mat
+n42.mat,ASEEG_HC_42,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2595.9,validated\not_scz\n42.mat
+n43.mat,ASEEG_HC_43,HC,NO,VALIDATED,YES,19,500.0,2644.3,validated\not_scz\n43.mat
+n44.mat,ASEEG_HC_44,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2641.1,validated\not_scz\n44.mat
+n45.mat,ASEEG_HC_45,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2636.7,validated\not_scz\n45.mat
+n46.mat,ASEEG_HC_46,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2586.0,validated\not_scz\n46.mat
+n47.mat,ASEEG_HC_47,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2599.8,validated\not_scz\n47.mat
+n48.mat,ASEEG_HC_48,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2635.5,validated\not_scz\n48.mat
+n49.mat,ASEEG_HC_49,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2622.4,validated\not_scz\n49.mat
+n5.mat,ASEEG_HC_05,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2588.4,validated\not_scz\n5.mat
+n50.mat,ASEEG_HC_50,HC,NO,VALIDATED,YES,19,500.0,2630.9,validated\not_scz\n50.mat
+n6.mat,ASEEG_HC_06,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2620.4,validated\not_scz\n6.mat
+n7.mat,ASEEG_HC_07,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2626.2,validated\not_scz\n7.mat
+n8.mat,ASEEG_HC_08,HC,NO,VALIDATED,YES,19,500.0,2640.4,validated\not_scz\n8.mat
+n9.mat,ASEEG_HC_09,HC,NO,VALIDATED,NO (TRAIN/VAL),19,500.0,2603.4,validated\not_scz\n9.mat
+EO.rar,N/A,RAW_ARCHIVE,N/A,NOT_VALIDATED (COMPRESSED_RAR),NO,N/A,N/A,253814.4,not_validated\raw_archives\EO.rar
+schizophrenia_EI_dynamics_table.xlsx,MULTIPLE,TABULAR_METADATA,MIXED,NOT_VALIDATED (NO_TIME_SERIES),NO,N/A,N/A,34.9,not_validated\tabular_clinical_tables\schizophrenia_EI_dynamics_table.xlsx
