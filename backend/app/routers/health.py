@@ -76,19 +76,31 @@ def compute_tasks_readiness() -> Dict[str, Any]:
 
     # Held-out test accuracy from saved evaluation results
     sz_hc_accuracy = None
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-        SELECT ev.accuracy
-        FROM evaluations ev
-        JOIN experiments e ON ev.experiment_id = e.id
-        WHERE (e.id = 'exp_real_4cbbe6c5' OR e.target_task = 'SZ_VS_HC' OR e.dataset_id = 'aseeg')
-          AND e.status = 'COMPLETED'
-        ORDER BY CASE WHEN e.id = 'exp_real_4cbbe6c5' THEN 0 ELSE 1 END, ev.created_at DESC LIMIT 1
-        """)
-        row = cursor.fetchone()
-        if row and row["accuracy"] is not None:
-            sz_hc_accuracy = round(float(row["accuracy"]) * 100, 1)
+    report_path = CHECKPOINTS_DIR.parent / "reports" / "final_evaluation_report.json"
+    if report_path.exists():
+        try:
+            with open(report_path, "r", encoding="utf-8") as f:
+                rep_data = json.load(f)
+                acc = rep_data.get("unconstrained_evaluation", {}).get("accuracy")
+                if acc is not None:
+                    sz_hc_accuracy = round(float(acc) * 100, 1)
+        except Exception:
+            pass
+
+    if sz_hc_accuracy is None:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT ev.accuracy
+            FROM evaluations ev
+            JOIN experiments e ON ev.experiment_id = e.id
+            WHERE (e.id = 'exp_real_4cbbe6c5' OR e.target_task = 'SZ_VS_HC' OR e.dataset_id = 'aseeg')
+              AND e.status = 'COMPLETED'
+            ORDER BY CASE WHEN e.id = 'exp_real_4cbbe6c5' THEN 0 ELSE 1 END, ev.created_at DESC LIMIT 1
+            """)
+            row = cursor.fetchone()
+            if row and row["accuracy"] is not None:
+                sz_hc_accuracy = round(float(row["accuracy"]) * 100, 1)
 
     # 2. Schizophrenia vs. Bipolar Disorder (SCZ_VS_BD)
     # Check if raw authorized B-SNIP 1 data is available

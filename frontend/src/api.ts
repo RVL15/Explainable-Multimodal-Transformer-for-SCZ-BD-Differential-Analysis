@@ -161,6 +161,9 @@ export const api = {
   getLatestEvaluation: (): Promise<{ has_evaluation: boolean; [key: string]: any }> =>
     request<{ has_evaluation: boolean; [key: string]: any }>(`${API_BASE}/evaluation/latest/summary`),
 
+  getVerifiedReport: (): Promise<any> =>
+    request<any>(`${API_BASE}/evaluation/verified/report`),
+
   getExportCsvUrl: (experimentId: string): string =>
     `${API_BASE}/evaluation/${experimentId}/export/csv`,
 
