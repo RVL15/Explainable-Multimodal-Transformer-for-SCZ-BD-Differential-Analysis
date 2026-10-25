@@ -56,7 +56,14 @@ async def validate_uploaded_eeg_file(
 
     try:
         signals, channels, sample_rate = load_eeg_file(tmp_path)
-        report = validate_eeg_array(signals, channels, sample_rate)
+        report = validate_eeg_array(
+            signals,
+            channels,
+            sample_rate,
+            filename=file.filename,
+            file_size_bytes=len(content),
+            file_format=suffix
+        )
         return report
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to parse and validate EEG file: {str(e)}")

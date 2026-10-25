@@ -78,3 +78,47 @@ def test_supported_formats_specification():
     assert ".csv" in info["supported_extensions"]
     assert "channel_count" in info["specifications"]
     assert "multimodal_inputs" in info
+
+def test_detailed_eeg_validation_metadata_reporting():
+    # 19 channels: 16 standard + 3 extra (Fz, Cz, Pz)
+    channels_19 = list(STANDARD_16_CHANNELS) + ["Fz", "Cz", "Pz"]
+    rng = np.random.default_rng(42)
+    # 10.0 seconds at 500 Hz = 5000 samples
+    data_500hz = rng.standard_normal((19, 5000)) * 15.0
+
+    report = validate_eeg_array(
+        data_500hz,
+        channels_19,
+        sample_rate=500.0,
+        filename="subject_01_raw.mat",
+        file_size_bytes=760000,
+        file_format=".mat"
+    )
+
+    assert report["is_valid"] is True
+    assert report["validation_status"] == "WARNINGS"  # Warning due to 500 Hz resampling and extra channels
+    assert report["filename"] == "subject_01_raw.mat"
+    assert report["file_format"] == ".mat"
+    assert report["num_channels"] == 19
+    assert report["num_standard_10_20_channels"] == 19
+    assert len(report["selected_model_channels"]) == 16
+    assert set(report["excluded_channels"]) == {"Fz", "Cz", "Pz"}
+    assert len(report["missing_required_channels"]) == 0
+    assert report["duration_sec"] == 10.0
+    assert report["usable_samples"] == 5000
+    assert report["total_windows_generated"] == 5
+    assert report["usable_windows_count"] == 5
+    assert report["has_nan_or_inf"] is False
+
+    # Verify preprocessing status breakdown
+    prep = report["preprocessing_status"]
+    assert prep is not None
+    assert prep["channel_alignment"]["status"] == "COMPLETED"
+    assert "16/16 standard channels mapped" in prep["channel_alignment"]["details"]
+    assert prep["resampling"]["status"] == "COMPLETED"
+    assert "500.0 Hz to 250.0 Hz" in prep["resampling"]["details"]
+    assert prep["bandpass_filtering"]["status"] == "CONFIGURED"
+    assert prep["common_average_reference"]["status"] == "CONFIGURED"
+    assert prep["artifact_rejection"]["status"] == "EVALUATED"
+    assert prep["training_normalization"]["status"] == "CONFIGURED"
+

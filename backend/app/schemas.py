@@ -90,18 +90,49 @@ class SpectralAnalysisResponse(BaseModel):
     channels_spectral: List[ChannelSpectralItem]
     mean_band_distribution: Dict[str, float]
 
+class PreprocessingStepDetail(BaseModel):
+    status: str
+    details: str
+
+class PreprocessingSummary(BaseModel):
+    channel_alignment: PreprocessingStepDetail
+    resampling: PreprocessingStepDetail
+    bandpass_filtering: PreprocessingStepDetail
+    common_average_reference: PreprocessingStepDetail
+    artifact_rejection: PreprocessingStepDetail
+    training_normalization: PreprocessingStepDetail
+
 class EEGValidationResponse(BaseModel):
     is_valid: bool
-    errors: List[str]
-    warnings: List[str]
+    validation_status: str = "VALIDATED"  # VALIDATED, WARNINGS, REJECTED
+    filename: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    file_format: Optional[str] = None
+    errors: List[str] = []
+    warnings: List[str] = []
     num_channels: int
+    detected_channels: List[str] = []
+    standard_10_20_channels_detected: List[str] = []
+    num_standard_10_20_channels: int = 0
+    selected_model_channels: List[str] = []
+    excluded_channels: List[str] = []
+    missing_required_channels: List[str] = []
     num_samples: int
     sample_rate: float
+    effective_sample_rate: float = 250.0
     duration_sec: float
+    usable_samples: int = 0
+    total_windows_generated: int = 0
+    rejected_windows_count: int = 0
+    usable_windows_count: int = 0
+    has_nan_or_inf: bool = False
+    nan_count: int = 0
+    inf_count: int = 0
     channels: List[str]
     montage_compliance: str
     quality_score: float
     peak_amplitude_uv: float
+    preprocessing_status: Optional[PreprocessingSummary] = None
 
 class SupportedFormatsResponse(BaseModel):
     supported_extensions: List[str]

@@ -242,18 +242,51 @@ export interface ClassificationTasksReadiness {
   scz_vs_bd: ClassificationTaskInfo;
 }
 
+export interface PreprocessingStepDetail {
+  status: string;
+  details: string;
+}
+
+export interface PreprocessingSummary {
+  channel_alignment: PreprocessingStepDetail;
+  resampling: PreprocessingStepDetail;
+  bandpass_filtering: PreprocessingStepDetail;
+  common_average_reference: PreprocessingStepDetail;
+  artifact_rejection: PreprocessingStepDetail;
+  training_normalization: PreprocessingStepDetail;
+}
+
 export interface EEGValidationResult {
   is_valid: boolean;
+  validation_status?: 'VALIDATED' | 'WARNINGS' | 'REJECTED';
+  filename?: string;
+  file_size_bytes?: number;
+  file_format?: string;
   errors: string[];
   warnings: string[];
   num_channels: number;
+  detected_channels?: string[];
+  standard_10_20_channels_detected?: string[];
+  num_standard_10_20_channels?: number;
+  selected_model_channels?: string[];
+  excluded_channels?: string[];
+  missing_required_channels?: string[];
   num_samples: number;
   sample_rate: number;
+  effective_sample_rate?: number;
   duration_sec: number;
+  usable_samples?: number;
+  total_windows_generated?: number;
+  rejected_windows_count?: number;
+  usable_windows_count?: number;
+  has_nan_or_inf?: boolean;
+  nan_count?: number;
+  inf_count?: number;
   channels: string[];
   montage_compliance: string;
   quality_score: number;
   peak_amplitude_uv: number;
+  preprocessing_status?: PreprocessingSummary;
 }
 
 export interface SupportedFormats {

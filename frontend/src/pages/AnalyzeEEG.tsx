@@ -478,78 +478,217 @@ export const AnalyzeEEG: React.FC = () => {
           </div>
         )}
 
+        {/* Uploaded File & Detailed Validation Summary */}
+        {validating && (
+          <div className="p-4 bg-indigo-50/60 rounded-xl border border-indigo-100 text-xs text-indigo-700 flex items-center space-x-2">
+            <RefreshCw className="w-4 h-4 text-indigo-600 animate-spin" />
+            <span>Validating EEG recording channels, sampling frequency, NaN/Inf presence, and window integrity...</span>
+          </div>
+        )}
+
         {uploadedFile && validationResult && (
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="p-5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-4">
+            {/* A. File Information Header */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
               <div className="flex items-center space-x-2">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                <span className="font-mono text-xs font-bold text-slate-900">{uploadedFile.name}</span>
+                <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span className="font-mono text-xs font-bold text-slate-900">
+                  {validationResult.filename || uploadedFile.name}
+                </span>
                 <span className="text-[11px] text-slate-500 font-mono">
-                  ({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  ({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB • {validationResult.file_format || '.' + uploadedFile.name.split('.').pop()})
                 </span>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                validationResult.is_valid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-              }`}>
-                {validationResult.is_valid ? 'VALIDATED' : 'VALIDATION WARNING'}
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status:</span>
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                  validationResult.validation_status === 'VALIDATED' || (validationResult.is_valid && (!validationResult.warnings || validationResult.warnings.length === 0))
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : validationResult.validation_status === 'WARNINGS' || validationResult.is_valid
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {validationResult.validation_status || (validationResult.is_valid ? 'VALIDATED' : 'REJECTED')}
+                </span>
+              </div>
+            </div>
+
+            {/* B. Detected EEG Information Grid */}
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                Detected Recording Parameters & Channel Topography
               </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-slate-400 text-[10px] block">Detected Channels</span>
+                  <strong className="text-slate-900">{validationResult.num_channels} Electrodes</strong>
+                  <span className="text-[10px] text-indigo-700 block mt-0.5">
+                    {validationResult.num_standard_10_20_channels ?? validationResult.num_channels} Standard 10–20
+                  </span>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-slate-400 text-[10px] block">Sampling Frequency</span>
+                  <strong className="text-slate-900">{validationResult.sample_rate} Hz (Native)</strong>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    → {validationResult.effective_sample_rate ?? 250.0} Hz (Effective)
+                  </span>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-slate-400 text-[10px] block">Duration & Samples</span>
+                  <strong className="text-slate-900">{validationResult.duration_sec.toFixed(1)} s</strong>
+                  <span className="text-[10px] text-slate-500 block mt-0.5 font-mono">
+                    {(validationResult.usable_samples ?? validationResult.num_samples).toLocaleString()} samples
+                  </span>
+                </div>
+                <div className="p-2.5 bg-white rounded-lg border border-slate-200">
+                  <span className="text-slate-400 text-[10px] block">2.0s Windows & Artifacts</span>
+                  <strong className="text-slate-900">
+                    {validationResult.total_windows_generated ?? Math.floor(validationResult.duration_sec / 2)} Windows
+                  </strong>
+                  <span className="text-[10px] text-slate-500 block mt-0.5">
+                    {validationResult.rejected_windows_count ?? 0} Rejected • {validationResult.usable_windows_count ?? Math.floor(validationResult.duration_sec / 2)} Usable
+                  </span>
+                </div>
+              </div>
+
+              {/* Detected Channels Tag Breakdown */}
+              <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-2">
+                <div className="flex flex-wrap items-center justify-between text-[11px]">
+                  <span className="font-semibold text-slate-700">
+                    Electrode Montage Mapping ({validationResult.detected_channels?.length ?? validationResult.num_channels} channels detected):
+                  </span>
+                  <span className="text-slate-500 font-mono text-[10px]">
+                    {validationResult.has_nan_or_inf ? `Alert: ${validationResult.nan_count} NaN, ${validationResult.inf_count} Inf` : 'Clean Signal (0 NaN / 0 Inf)'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {(validationResult.detected_channels || validationResult.channels || []).map((ch) => {
+                    const isSelected = validationResult.selected_model_channels?.includes(ch) ?? true;
+                    return (
+                      <span
+                        key={ch}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
+                          isSelected
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 line-through'
+                        }`}
+                        title={isSelected ? 'Selected for 16-channel model input' : 'Non-model channel (excluded from inference)'}
+                      >
+                        {ch}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+                  <span>
+                    <strong className="text-indigo-700">Model Selected (16): </strong>
+                    {validationResult.selected_model_channels?.join(', ') || 'Standard 16-channel 10–20 montage'}
+                  </span>
+                  {validationResult.excluded_channels && validationResult.excluded_channels.length > 0 && (
+                    <span>
+                      <strong className="text-slate-600">Excluded ({validationResult.excluded_channels.length}): </strong>
+                      {validationResult.excluded_channels.join(', ')}
+                    </span>
+                  )}
+                  {validationResult.missing_required_channels && validationResult.missing_required_channels.length > 0 && (
+                    <span>
+                      <strong className="text-rose-600">Missing Required: </strong>
+                      {validationResult.missing_required_channels.join(', ')}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                <span className="text-slate-400 text-[10px] block">Channels Detected</span>
-                <strong className="text-slate-900">{validationResult.num_channels} Electrodes</strong>
-              </div>
-              <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                <span className="text-slate-400 text-[10px] block">Sampling Frequency</span>
-                <strong className="text-slate-900">{validationResult.sample_rate} Hz</strong>
-              </div>
-              <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                <span className="text-slate-400 text-[10px] block">Duration</span>
-                <strong className="text-slate-900">{validationResult.duration_sec.toFixed(1)} Seconds</strong>
-              </div>
-              <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                <span className="text-slate-400 text-[10px] block">Montage Standard</span>
-                <strong className="text-emerald-700">{validationResult.montage_compliance}</strong>
-              </div>
-            </div>
-
+            {/* Validation Warnings / Notices */}
             {validationResult.warnings && validationResult.warnings.length > 0 && (
-              <div className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-                <strong>Notice: </strong> {validationResult.warnings.join(' • ')}
+              <div className="text-[11px] text-amber-800 bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-1">
+                <div className="font-bold flex items-center space-x-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>Validation Notices ({validationResult.warnings.length})</span>
+                </div>
+                <ul className="list-disc list-inside space-y-0.5 pl-1 text-[10px] text-amber-900 leading-snug">
+                  {validationResult.warnings.map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Validation Errors */}
+            {validationResult.errors && validationResult.errors.length > 0 && (
+              <div className="text-[11px] text-rose-800 bg-rose-50 p-3 rounded-lg border border-rose-200 space-y-1">
+                <div className="font-bold flex items-center space-x-1.5">
+                  <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Validation Rejection Errors ({validationResult.errors.length})</span>
+                </div>
+                <ul className="list-disc list-inside space-y-0.5 pl-1 text-[10px] text-rose-900 leading-snug">
+                  {validationResult.errors.map((e, idx) => (
+                    <li key={idx}>{e}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Step 3: Preprocessing Pipeline Confirmation */}
+      {/* Step 3: Verified Preprocessing Pipeline Confirmation */}
       <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
         <div className="flex items-center space-x-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
           <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">3</span>
-          <span>Review Preprocessing Pipeline</span>
+          <span>Verified Preprocessing Pipeline</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
             <span className="text-slate-400 text-[10px] block uppercase font-bold">1. Channel Alignment</span>
             <span className="text-slate-800 font-semibold text-[11px] block mt-1">16 Standard 10–20</span>
-            <span className="text-[10px] text-slate-400">Maps Fp1..T6 to model schema</span>
+            <span className="text-[10px] text-slate-500 leading-snug mt-0.5 block">
+              {validationResult?.preprocessing_status?.channel_alignment.details || 'Maps Fp1..T6 to model schema'}
+            </span>
           </div>
+
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <span className="text-slate-400 text-[10px] block uppercase font-bold">2. Bandpass Filter</span>
+            <span className="text-slate-400 text-[10px] block uppercase font-bold">2. Resampling</span>
+            <span className="text-slate-800 font-semibold text-[11px] block mt-1">250.0 Hz Target</span>
+            <span className="text-[10px] text-slate-500 leading-snug mt-0.5 block">
+              {validationResult?.preprocessing_status?.resampling.details || 'Native 250 Hz target rate'}
+            </span>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <span className="text-slate-400 text-[10px] block uppercase font-bold">3. Bandpass Filter</span>
             <span className="text-slate-800 font-semibold text-[11px] block mt-1">1.0 – 45.0 Hz</span>
-            <span className="text-[10px] text-slate-400">Butterworth 4th-order zero-phase</span>
+            <span className="text-[10px] text-slate-500 leading-snug mt-0.5 block">
+              {validationResult?.preprocessing_status?.bandpass_filtering.details || 'Butterworth 4th-order zero-phase'}
+            </span>
           </div>
+
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <span className="text-slate-400 text-[10px] block uppercase font-bold">3. Rereferencing</span>
+            <span className="text-slate-400 text-[10px] block uppercase font-bold">4. Rereferencing</span>
             <span className="text-slate-800 font-semibold text-[11px] block mt-1">Common Average (CAR)</span>
-            <span className="text-[10px] text-slate-400">Removes reference electrode bias</span>
+            <span className="text-[10px] text-slate-500 leading-snug mt-0.5 block">
+              {validationResult?.preprocessing_status?.common_average_reference.details || 'Removes reference electrode bias'}
+            </span>
           </div>
+
           <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-            <span className="text-slate-400 text-[10px] block uppercase font-bold">4. Normalization</span>
+            <span className="text-slate-400 text-[10px] block uppercase font-bold">5. Artifact Rejection</span>
+            <span className="text-slate-800 font-semibold text-[11px] block mt-1">Window Checking</span>
+            <span className="text-[10px] text-slate-500 leading-snug mt-0.5 block">
+              {validationResult?.preprocessing_status?.artifact_rejection.details || 'Peak > 150 µV threshold'}
+            </span>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <span className="text-slate-400 text-[10px] block uppercase font-bold">6. Normalization</span>
             <span className="text-slate-800 font-semibold text-[11px] block mt-1">Learned Statistics</span>
-            <span className="text-[10px] text-slate-400">Normalized via training parameters</span>
+            <span className="text-[10px] text-slate-500 leading-snug mt-0.5 block">
+              {validationResult?.preprocessing_status?.training_normalization.details || 'Z-score (mean: -0.0036 µV, std: 10.4504 µV)'}
+            </span>
           </div>
         </div>
 
