@@ -8,6 +8,10 @@ CHECKPOINTS_DIR = BASE_DIR / "checkpoints"
 REPORTS_DIR = BASE_DIR / "reports"
 DEMO_DATA_DIR = DATA_DIR / "demo"
 MANIFESTS_DIR = DATA_DIR / "manifests"
+UNSEEN_DATA_DIR = DATA_DIR / "unseen"
+UNSEEN_INCOMING_DIR = UNSEEN_DATA_DIR / "incoming"
+UNSEEN_PROCESSED_DIR = UNSEEN_DATA_DIR / "processed"
+UNSEEN_RESULTS_DIR = UNSEEN_DATA_DIR / "results"
 
 # Create directories if they do not exist
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -15,6 +19,10 @@ CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 DEMO_DATA_DIR.mkdir(parents=True, exist_ok=True)
 MANIFESTS_DIR.mkdir(parents=True, exist_ok=True)
+UNSEEN_DATA_DIR.mkdir(parents=True, exist_ok=True)
+UNSEEN_INCOMING_DIR.mkdir(parents=True, exist_ok=True)
+UNSEEN_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+UNSEEN_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # EEG Signal Processing Constants
 DEFAULT_SAMPLE_RATE = 250  # Hz

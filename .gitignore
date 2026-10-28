@@ -24,6 +24,14 @@ backend/data/demo/
 *.bdf
 *.fif
 
+# Unseen EEG recordings and prediction outputs
+backend/data/unseen/incoming/*
+!backend/data/unseen/incoming/.gitkeep
+backend/data/unseen/processed/*
+!backend/data/unseen/processed/.gitkeep
+backend/data/unseen/results/*
+!backend/data/unseen/results/.gitkeep
+
 # Keep manifests
 !backend/data/manifests/
 

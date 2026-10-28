@@ -14,10 +14,12 @@ from sklearn.model_selection import train_test_split
 
 from app.config import (
     CHECKPOINTS_DIR, DEFAULT_SAMPLE_RATE, WINDOW_SAMPLES,
-    STANDARD_16_CHANNELS, AMPLITUDE_REJECTION_UV
+    STANDARD_16_CHANNELS, AMPLITUDE_REJECTION_UV,
+    UNSEEN_INCOMING_DIR, UNSEEN_PROCESSED_DIR, UNSEEN_RESULTS_DIR
 )
 from app.database import get_db
 from app.eeg.io import load_eeg_file
+from app.eeg.validation import validate_eeg_array
 from app.eeg.spectral import extract_subject_spectral_features
 from app.models.cnn_transformer import EEGCNNTransformer
 from app.models.baseline_lr import BaselineLogisticRegression
@@ -590,3 +592,194 @@ def start_training_in_background(
         daemon=True
     )
     thread.start()
+
+
+def run_unseen_eeg_inference(
+    file_path: Any,
+    target_task: str = "SZ_VS_HC",
+    uncertainty_threshold: float = 0.65,
+    save_result: bool = True,
+    save_processed: bool = False
+) -> Dict[str, Any]:
+    """
+    CRITICAL SCIENTIFIC INTEGRITY PIPELINE FOR UNSEEN EEG INFERENCE:
+    1. Reads an unseen EEG recording (.mat, .edf, .bdf, .fif, .npy, .csv).
+    2. Validates neurophysiological integrity (montage, dynamic range, sample rate).
+    3. Resolves and loads the appropriate genuine model checkpoint without retraining.
+    4. Applies uniform preprocessing (channel alignment, resampling, CAR, bandpass).
+    5. Normalizes windows using strictly SAVED training-set statistics (norm_mean, norm_std).
+       (ZERO leakage: incoming recording is never used to compute normalization parameters).
+    6. Runs forward inference in PyTorch evaluation mode (eval + no_grad).
+    7. Computes calibrated class scores and applies uncertainty rejection.
+    8. Generates Integrated Gradients electrode attribution rankings.
+    9. Automatically records prediction output in backend/data/unseen/results/.
+    """
+    p = Path(file_path)
+    # Check if relative to UNSEEN_INCOMING_DIR
+    if not p.is_absolute() and not p.exists() and (UNSEEN_INCOMING_DIR / p).exists():
+        p = UNSEEN_INCOMING_DIR / p
+
+    if not p.exists():
+        raise FileNotFoundError(f"Unseen EEG file not found: {file_path}")
+
+    ext = p.suffix.lower()
+    valid_exts = [".edf", ".bdf", ".fif", ".mat", ".npy", ".csv"]
+    if ext not in valid_exts:
+        raise ValueError(f"Unsupported EEG file extension: '{ext}'. Supported: {', '.join(valid_exts)}")
+
+    # 1. Load raw signal
+    raw_signals, channels, sample_rate = load_eeg_file(str(p))
+
+    # 2. Neurophysiological validation
+    file_size = p.stat().st_size
+    val_report = validate_eeg_array(
+        raw_signals,
+        channels,
+        sample_rate,
+        filename=p.name,
+        file_size_bytes=file_size,
+        file_format=ext
+    )
+    if not val_report["is_valid"]:
+        raise ValueError(f"EEG validation failed for {p.name}: {'; '.join(val_report['errors'])}")
+
+    # 3. Checkpoint resolution & Task separation
+    norm_task = (target_task or "SZ_VS_HC").strip().upper()
+    if norm_task in ["SCZ_VS_BD", "SCZ_BD", "SCZ-VS-BD", "SCZ"]:
+        resolved_task = "SCZ_VS_BD"
+        checkpoint_name = "scz_bd_model.pt"
+        checkpoint_path = CHECKPOINTS_DIR / checkpoint_name
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(
+                "SCZ vs BD differential classification is unavailable: B-SNIP 1 clinical dataset is protected "
+                "under NIH NDA Data Use Certification and not present in this local environment. "
+                "Healthy controls cannot be substituted for bipolar participants, and no verified SCZ-vs-BD "
+                "checkpoint (scz_bd_model.pt) exists. Model inference for SCZ vs BD is withheld until authorized data is provided."
+            )
+    elif norm_task in ["SZ_VS_HC", "SZ_VS_HC_TECH_VAL", "SZ_HC", "ASEEG"]:
+        resolved_task = "SZ_VS_HC"
+        checkpoint_name = "best_model.pt"
+        checkpoint_path = CHECKPOINTS_DIR / checkpoint_name
+        if not checkpoint_path.exists():
+            raise FileNotFoundError("SZ vs HC model checkpoint (best_model.pt) not found.")
+    else:
+        raise ValueError(f"Unsupported classification task: '{target_task}'. Supported tasks: 'SZ_VS_HC' and 'SCZ_VS_BD'.")
+
+    # 4. Load trained weights without retraining
+    state = torch.load(str(checkpoint_path), map_location="cpu", weights_only=False)
+    model = EEGCNNTransformer(
+        num_channels=16,
+        time_points=WINDOW_SAMPLES,
+        num_classes=2,
+        d_model=state.get("hyperparameters", {}).get("hidden_dim", 64),
+        nhead=state.get("hyperparameters", {}).get("transformer_heads", 4),
+        num_layers=state.get("hyperparameters", {}).get("transformer_layers", 2),
+        dropout=state.get("hyperparameters", {}).get("dropout", 0.2)
+    )
+    model.load_state_dict(state["model_state_dict"])
+    model.eval()
+
+    # 5. Extract strictly SAVED normalization statistics
+    norm_mean = np.array(state["norm_mean"], dtype=np.float32)
+    norm_std = np.array(state["norm_std"], dtype=np.float32)
+    norm_std[norm_std == 0] = 1.0
+
+    # 6. Apply preprocessing and window segmentation
+    clean_windows = preprocess_and_window_eeg(raw_signals, channels, sample_rate)
+    if len(clean_windows) == 0:
+        raise ValueError(f"No usable clean EEG windows could be segmented from {p.name} (all rejected as artifacts).")
+
+    if save_processed:
+        proc_path = UNSEEN_PROCESSED_DIR / f"{p.stem}_processed.npy"
+        np.save(proc_path, clean_windows)
+
+    # 7. Apply saved training normalization to tensor
+    norm_w = (clean_windows - norm_mean) / norm_std
+    eeg_tensor = torch.from_numpy(norm_w).float()
+
+    # 8. Run inference
+    with torch.no_grad():
+        pred_res = model.predict_with_uncertainty(
+            eeg_tensor,
+            uncertainty_threshold=uncertainty_threshold,
+            target_task=resolved_task
+        )
+
+    # 9. Integrated Gradients electrode attribution
+    target_cls = 0 if pred_res["raw_label"] in ["SZ", "SCZ"] else 1
+    channel_attributions = []
+    top_channels = []
+    explanation_available = False
+    disclaimer = "Engineering research prototype. Not certified for medical diagnosis or clinical decision support."
+
+    try:
+        from app.xai.attribution import compute_gradient_attribution, SCIENTIFIC_LIMITATION_DISCLAIMER
+        _, ch_imp = compute_gradient_attribution(
+            model=model,
+            eeg_windows=eeg_tensor[:16, :16, :WINDOW_SAMPLES],
+            target_class=target_cls,
+            steps=20
+        )
+        ranked_indices = np.argsort(-ch_imp)
+        for rank, idx in enumerate(ranked_indices):
+            ch_name = STANDARD_16_CHANNELS[idx] if idx < len(STANDARD_16_CHANNELS) else f"Ch_{idx+1}"
+            channel_attributions.append({
+                "channel": ch_name,
+                "importance_score": round(float(ch_imp[idx]), 4),
+                "rank": rank + 1
+            })
+        top_channels = [c["channel"] for c in channel_attributions[:4]]
+        explanation_available = True
+        disclaimer = SCIENTIFIC_LIMITATION_DISCLAIMER
+    except Exception:
+        pass
+
+    # 10. Assemble structured output conforming to task specification
+    if resolved_task == "SCZ_VS_BD":
+        p_scz = pred_res.get("prob_scz", 0.5)
+        p_bd = pred_res.get("prob_bd", 0.5)
+        class_scores = {"SCZ": round(p_scz, 4), "BD": round(p_bd, 4)}
+        predicted_class = "UNCERTAIN" if pred_res["is_uncertain"] else pred_res["raw_label"]
+    else:
+        p_sz = pred_res.get("prob_sz", 0.5)
+        p_hc = pred_res.get("prob_hc", 0.5)
+        class_scores = {"SZ": round(p_sz, 4), "HC": round(p_hc, 4)}
+        predicted_class = "UNCERTAIN" if pred_res["is_uncertain"] else pred_res["raw_label"]
+
+    uncertainty_status = "UNCERTAIN" if pred_res["is_uncertain"] else "CONFIDENT"
+    timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+
+    output: Dict[str, Any] = {
+        "filename": p.name,
+        "task": resolved_task,
+        "predicted_class": predicted_class,
+        "class_scores": class_scores,
+        "uncertainty_status": uncertainty_status,
+        "model_checkpoint": checkpoint_name,
+        "is_new_input": True,
+        "retrained_during_inference": False,
+        "explanation_available": explanation_available,
+        "predicted_label": predicted_class,
+        "raw_label": pred_res["raw_label"],
+        "confidence": pred_res["confidence"],
+        "uncertainty_threshold": uncertainty_threshold,
+        "is_uncertain": pred_res["is_uncertain"],
+        "usable_windows": len(clean_windows),
+        "total_duration_sec": round(float(clean_windows.shape[0] * 2.0), 2),
+        "sampling_rate": sample_rate,
+        "channels_analyzed": len(channels),
+        "top_contributing_channels": top_channels,
+        "eeg_channel_attributions": channel_attributions,
+        "scientific_disclaimer": disclaimer,
+        "timestamp": timestamp_str
+    }
+
+    # 11. Save structured result into backend/data/unseen/results/
+    if save_result:
+        UNSEEN_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        res_file = UNSEEN_RESULTS_DIR / f"{timestamp_str}_{p.stem}_result.json"
+        with open(res_file, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2)
+        output["saved_result_path"] = str(res_file)
+
+    return output

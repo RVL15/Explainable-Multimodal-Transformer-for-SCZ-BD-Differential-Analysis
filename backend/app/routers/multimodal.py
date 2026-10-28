@@ -8,7 +8,7 @@ import torch
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import FileResponse
 
-from app.config import CHECKPOINTS_DIR, DATA_DIR, WINDOW_SAMPLES, STANDARD_16_CHANNELS
+from app.config import CHECKPOINTS_DIR, DATA_DIR, WINDOW_SAMPLES, STANDARD_16_CHANNELS, UNSEEN_RESULTS_DIR
 from app.database import get_db
 from app.eeg.io import load_eeg_file
 from app.eeg.preprocessing import run_eeg_preprocessing
@@ -402,13 +402,27 @@ async def analyze_multimodal_differential_evidence(
         except Exception:
             pass
 
-        return {
+        if active_task_id == "SCZ_VS_BD":
+            class_scores = {"SCZ": round(p_scz, 4), "BD": round(p_bd, 4)}
+        else:
+            class_scores = {"SZ": round(p_sz, 4), "HC": round(p_hc, 4)}
+
+        output_payload = {
             "analysis_id": record_id,
+            "filename": eeg_file.filename if eeg_file else (target_subject_id or "Manual_Input"),
+            "task": active_task_id,
+            "predicted_class": predicted_label,
+            "class_scores": class_scores,
+            "uncertainty_status": "UNCERTAIN" if is_uncertain else "CONFIDENT",
+            "model_checkpoint": target_cp.name,
+            "is_new_input": True,
+            "retrained_during_inference": False,
+            "explanation_available": True,
             "subject_id": target_subject_id,
             "true_label": true_label,
             "predicted_label": predicted_label,
             "raw_label": raw_label,
-            "target_task": "SZ_VS_HC",
+            "target_task": active_task_id,
             "prob_sz": p_sz,
             "prob_hc": p_hc,
             "prob_scz": p_sz,
@@ -433,6 +447,21 @@ async def analyze_multimodal_differential_evidence(
             "clinical_attributions": [],
             "scientific_disclaimer": SCIENTIFIC_LIMITATION_DISCLAIMER
         }
+
+        # Automatically save prediction record in backend/data/unseen/results/
+        try:
+            import time
+            UNSEEN_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+            res_stem = Path(output_payload["filename"]).stem
+            res_filename = f"{time.strftime('%Y%m%d_%H%M%S')}_{res_stem}_result.json"
+            res_path = UNSEEN_RESULTS_DIR / res_filename
+            with open(res_path, "w", encoding="utf-8") as rf:
+                json.dump(output_payload, rf, indent=2)
+            output_payload["saved_result_path"] = str(res_path)
+        except Exception:
+            pass
+
+        return output_payload
 
     # Otherwise fallback to Multimodal Transformer (for cohort subjects with MRI/Clinical features)
     model, norm_stats = _get_active_multimodal_transformer()

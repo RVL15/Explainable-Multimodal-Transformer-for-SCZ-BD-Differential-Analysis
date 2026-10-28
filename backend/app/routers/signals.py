@@ -5,11 +5,13 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from typing import Optional, List, Dict, Any
 import numpy as np
 
+from app.config import UNSEEN_INCOMING_DIR, UNSEEN_RESULTS_DIR, UNSEEN_PROCESSED_DIR
 from app.database import get_db
 from app.eeg.io import load_eeg_file
 from app.eeg.preprocessing import run_eeg_preprocessing
 from app.eeg.spectral import compute_psd, compute_band_powers
 from app.eeg.validation import validate_eeg_array, get_supported_formats_info
+from app.models.pipeline import run_unseen_eeg_inference
 from app.schemas import PreprocessingOptions, EEGValidationResponse, SupportedFormatsResponse
 
 router = APIRouter(prefix="/api/signals", tags=["Signals"])
@@ -298,3 +300,116 @@ def get_spectral_analysis(
         "channels_spectral": channels_spectral,
         "mean_band_distribution": mean_distribution
     }
+
+
+@router.get("/unseen/incoming")
+def list_unseen_incoming_recordings() -> Dict[str, Any]:
+    """
+    Lists all unseen EEG recordings available in backend/data/unseen/incoming/
+    ready for model prediction without retraining.
+    """
+    UNSEEN_INCOMING_DIR.mkdir(parents=True, exist_ok=True)
+    supported_exts = {".edf", ".bdf", ".fif", ".mat", ".npy", ".csv"}
+    files = []
+    for item in sorted(UNSEEN_INCOMING_DIR.iterdir()):
+        if item.is_file() and item.name != ".gitkeep" and item.suffix.lower() in supported_exts:
+            st = item.stat()
+            files.append({
+                "filename": item.name,
+                "file_path": str(item),
+                "format": item.suffix.lower(),
+                "size_bytes": st.st_size,
+                "modified_at": st.st_mtime
+            })
+    return {
+        "directory": str(UNSEEN_INCOMING_DIR),
+        "count": len(files),
+        "files": files
+    }
+
+
+@router.get("/unseen/results")
+def list_unseen_prediction_results() -> Dict[str, Any]:
+    """
+    Lists saved prediction results and metadata from backend/data/unseen/results/.
+    """
+    import json
+    UNSEEN_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    results = []
+    for item in sorted(UNSEEN_RESULTS_DIR.glob("*_result.json"), reverse=True):
+        try:
+            with open(item, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                results.append({
+                    "result_file": item.name,
+                    "filename": data.get("filename"),
+                    "task": data.get("task"),
+                    "predicted_class": data.get("predicted_class"),
+                    "confidence": data.get("confidence"),
+                    "uncertainty_status": data.get("uncertainty_status"),
+                    "model_checkpoint": data.get("model_checkpoint"),
+                    "timestamp": data.get("timestamp")
+                })
+        except Exception:
+            continue
+    return {
+        "directory": str(UNSEEN_RESULTS_DIR),
+        "count": len(results),
+        "results": results
+    }
+
+
+@router.post("/unseen/predict")
+async def predict_unseen_recording(
+    filename: Optional[str] = Query(None, description="Filename inside backend/data/unseen/incoming/"),
+    file: Optional[UploadFile] = File(None, description="Directly uploaded EEG file"),
+    target_task: str = Query("SZ_VS_HC", description="Classification task: 'SZ_VS_HC' or 'SCZ_VS_BD'"),
+    uncertainty_threshold: float = Query(0.65, ge=0.50, le=1.0),
+    save_processed: bool = Query(False, description="Save intermediate preprocessed array")
+) -> Dict[str, Any]:
+    """
+    Runs trained checkpoint inference on an unseen EEG recording without retraining.
+    The recording can be referenced by filename from backend/data/unseen/incoming/
+    or uploaded directly. Results are saved to backend/data/unseen/results/.
+    """
+    target_path = None
+    temp_created = False
+
+    try:
+        if file is not None and file.filename:
+            # Direct file upload: save to incoming directory so it is registered
+            UNSEEN_INCOMING_DIR.mkdir(parents=True, exist_ok=True)
+            target_path = UNSEEN_INCOMING_DIR / file.filename
+            content = await file.read()
+            with open(target_path, "wb") as f:
+                f.write(content)
+        elif filename:
+            cand = UNSEEN_INCOMING_DIR / filename
+            if not cand.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"EEG file '{filename}' was not found in backend/data/unseen/incoming/."
+                )
+            target_path = cand
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Either 'filename' (in backend/data/unseen/incoming/) or 'file' (upload) must be provided."
+            )
+
+        res = run_unseen_eeg_inference(
+            file_path=target_path,
+            target_task=target_task,
+            uncertainty_threshold=uncertainty_threshold,
+            save_result=True,
+            save_processed=save_processed
+        )
+        return res
+
+    except FileNotFoundError as fnf:
+        raise HTTPException(status_code=400, detail=str(fnf))
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+
