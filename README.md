@@ -17,7 +17,14 @@
 
 The user-facing website is a clean, professional, light-themed **prediction-only application**. All model training, evaluation, and dataset ingestion are handled strictly through background development tools and are not exposed in the user interface.
 
-### A. Start the FastAPI Backend
+### A. One-Command Start (Windows)
+Double-click `run.bat` or run in terminal:
+```cmd
+run.bat
+```
+This automatically verifies Python & npm, launches the FastAPI backend and Vite frontend in dedicated terminal windows, and opens `http://127.0.0.1:5173` in your default browser.
+
+### B. Manual Startup: FastAPI Backend
 ```powershell
 # Navigate to project root
 cd "c:\Users\risha\OneDrive\Desktop\FINAL PROJECT"
@@ -28,7 +35,7 @@ python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
 - Interactive API Documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - Health Check: [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
 
-### B. Start the React Frontend
+### C. Manual Startup: React Frontend
 ```powershell
 # Navigate to frontend folder
 cd "c:\Users\risha\OneDrive\Desktop\FINAL PROJECT\frontend"
@@ -38,7 +45,7 @@ npm run dev -- --host 127.0.0.1 --port 5173
 ```
 - Prediction Application UI: [http://127.0.0.1:5173](http://127.0.0.1:5173)
 
-### C. Run the Complete Automated Verification Suite
+### D. Run the Complete Automated Verification Suite
 ```powershell
 # Run backend test suite (33 unit and integration tests)
 python -m pytest backend/tests -v
