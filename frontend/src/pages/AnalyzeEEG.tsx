@@ -202,8 +202,14 @@ export const AnalyzeEEG: React.FC = () => {
             <p className="text-xs text-slate-500 leading-relaxed">
               Primary clinical differential task.
             </p>
-            <div className="mt-3 p-2 bg-amber-50/80 rounded-lg border border-amber-200/80 text-[11px] text-amber-900 leading-snug">
-              SCZ vs. BD prediction is unavailable: B-SNIP 1 clinical dataset is protected by NIH NDA Data Use Certification and not present locally. Healthy controls cannot be substituted for bipolar participants.
+            <div className={`mt-3 p-2 rounded-lg border text-[11px] leading-snug ${
+              isSczBdAvailable
+                ? 'bg-indigo-50/80 border-indigo-200/80 text-indigo-900'
+                : 'bg-amber-50/80 border-amber-200/80 text-amber-900'
+            }`}>
+              {isSczBdAvailable
+                ? `Active Checkpoint: ${tasksReadiness?.scz_vs_bd?.active_checkpoint || 'scz_bd_model.pt'} (PyTorch CNN–Transformer)`
+                : `SCZ vs. BD prediction is unavailable: ${tasksReadiness?.scz_vs_bd?.status_reason || 'B-SNIP 1 clinical dataset is protected by NIH NDA Data Use Certification and not present locally. Healthy controls cannot be substituted for bipolar participants.'}`}
             </div>
           </div>
         </div>
@@ -880,7 +886,7 @@ export const AnalyzeEEG: React.FC = () => {
               <div>Input Window Dimension: [16, 500] (16 Channels x 500 Samples at 250 Hz)</div>
               <div>Attentive Pooling: Window-level representation softmax aggregation</div>
               <div>Threshold: {uncertaintyThreshold} • Evidence Margin: {analysisResult.evidence_margin?.toFixed(4)}</div>
-              <div>Checkpoint: backend/checkpoints/best_model.pt</div>
+              <div>Checkpoint: {selectedTask === 'SCZ_VS_BD' ? 'backend/checkpoints/scz_bd_model.pt' : 'backend/checkpoints/best_model.pt'}</div>
             </div>
           )}
         </div>

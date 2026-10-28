@@ -379,8 +379,11 @@ def run_training_experiment_job(
                         }
                     }
                     torch.save(checkpoint_dict, str(checkpoint_file))
-                    # Also write master best_model checkpoint
-                    torch.save(checkpoint_dict, str(CHECKPOINTS_DIR / "best_model.pt"))
+                    # Route to task-specific master checkpoint
+                    if target_task == "SCZ_VS_BD":
+                        torch.save(checkpoint_dict, str(CHECKPOINTS_DIR / "scz_bd_model.pt"))
+                    else:
+                        torch.save(checkpoint_dict, str(CHECKPOINTS_DIR / "best_model.pt"))
                     torch.save(checkpoint_dict, str(CHECKPOINTS_DIR / f"{dataset_id}_real_cnn_transformer.pt"))
 
                 # Update DB progress

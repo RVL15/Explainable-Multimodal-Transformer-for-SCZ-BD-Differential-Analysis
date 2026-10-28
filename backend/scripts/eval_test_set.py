@@ -10,8 +10,28 @@ from app.models.cnn_transformer import EEGCNNTransformer
 from app.evaluation.metrics import compute_classification_metrics
 from app.database import get_db
 
-ckpt = torch.load("backend/checkpoints/best_model.pt", map_location="cpu")
-model = EEGCNNTransformer(num_channels=16, time_points=500, num_classes=2, d_model=64)
+import argparse
+
+parser = argparse.ArgumentParser(description="Evaluate model on held-out test participants")
+parser.add_argument("--task", type=str, default="SZ_VS_HC", choices=["SZ_VS_HC", "SCZ_VS_BD"], help="Classification task")
+args, _ = parser.parse_known_args()
+
+target_task = args.task
+ckpt_path = "backend/checkpoints/scz_bd_model.pt" if target_task == "SCZ_VS_BD" else "backend/checkpoints/best_model.pt"
+
+if not os.path.exists(ckpt_path):
+    print(f"Checkpoint {ckpt_path} not found. Task {target_task} requires trained checkpoint.")
+    sys.exit(0)
+
+ckpt = torch.load(ckpt_path, map_location="cpu")
+model = EEGCNNTransformer(
+    num_channels=16,
+    time_points=500,
+    num_classes=2,
+    d_model=ckpt.get("hyperparameters", {}).get("hidden_dim", 64),
+    nhead=ckpt.get("hyperparameters", {}).get("transformer_heads", 4),
+    num_layers=ckpt.get("hyperparameters", {}).get("transformer_layers", 2)
+)
 model.load_state_dict(ckpt["model_state_dict"])
 model.eval()
 
@@ -19,6 +39,7 @@ norm_mean = np.array(ckpt["norm_mean"], dtype=np.float32)
 norm_std = np.array(ckpt["norm_std"], dtype=np.float32)
 
 test_sub_ids = ckpt["split_participant_ids"]["test"]
+print(f"Evaluating {target_task} using {ckpt_path}")
 print(f"Number of test participants: {len(test_sub_ids)}")
 
 with get_db() as conn:
@@ -44,16 +65,22 @@ for sid in test_sub_ids:
     norm_w = (windows - norm_mean) / norm_std
     tensor_w = torch.from_numpy(norm_w).float()
 
-    res_raw = model.predict_with_uncertainty(tensor_w, uncertainty_threshold=0.50, target_task="SZ_VS_HC")
-    res_thresh = model.predict_with_uncertainty(tensor_w, uncertainty_threshold=0.65, target_task="SZ_VS_HC")
+    res_raw = model.predict_with_uncertainty(tensor_w, uncertainty_threshold=0.50, target_task=target_task)
+    res_thresh = model.predict_with_uncertainty(tensor_w, uncertainty_threshold=0.65, target_task=target_task)
 
-    true_idx = 0 if sub["diagnostic_label"] == "SZ" else 1
-    raw_pred_idx = 0 if res_raw["raw_label"] == "SZ" else 1
+    if target_task == "SCZ_VS_BD":
+        true_idx = 0 if sub["diagnostic_label"] == "SCZ" else 1
+        raw_pred_idx = 0 if res_raw["raw_label"] == "SCZ" else 1
+        score_val = res_raw["prob_bd"]
+    else:
+        true_idx = 0 if sub["diagnostic_label"] in ["SZ", "SCZ"] else 1
+        raw_pred_idx = 0 if res_raw["raw_label"] in ["SZ", "SCZ"] else 1
+        score_val = res_raw["prob_hc"]
     thresh_pred_idx = -1 if res_thresh["is_uncertain"] else raw_pred_idx
 
     y_true_all.append(true_idx)
     y_pred_all.append(raw_pred_idx)
-    y_scores_all.append(res_raw["prob_hc"]) # class 1 score
+    y_scores_all.append(score_val) # class 1 score
 
     y_pred_thresh.append(thresh_pred_idx)
     if res_thresh["is_uncertain"]:

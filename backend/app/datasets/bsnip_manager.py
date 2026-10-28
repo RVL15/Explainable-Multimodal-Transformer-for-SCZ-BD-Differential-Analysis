@@ -2,7 +2,7 @@ import csv
 import io
 import os
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from app.config import BSNIP_NDA_COLLECTION_ID, BSNIP_NDA_URL, BSNIP_TITLE, DATA_DIR
 from app.database import get_db
 
@@ -135,10 +135,14 @@ class BSNIPDatasetManager:
                 continue
 
             # Age and sex
-            try:
-                age_val = float(norm_row.get(age_col)) if age_col and norm_row.get(age_col) else None
-            except ValueError:
-                age_val = None
+            age_val = None
+            if age_col:
+                raw_age = norm_row.get(age_col)
+                if raw_age is not None and str(raw_age).strip():
+                    try:
+                        age_val = float(str(raw_age).strip())
+                    except ValueError:
+                        age_val = None
 
             sex_val = norm_row.get(sex_col, "U").upper() if sex_col else "U"
             site_val = norm_row.get(site_col, "Unknown") if site_col else "Unknown"
@@ -209,10 +213,12 @@ class BSNIPDatasetManager:
 
         return {
             "dataset_id": cls.DATASET_ID,
+            "total_rows": total_manifest_records,
             "total_manifest_records": total_manifest_records,
             "valid_subjects_count": len(valid_records),
             "missing_files_count": len(missing_files),
             "duplicate_subjects_count": len(duplicates),
+            "duplicates": duplicates,
             "excluded_subjects_count": len(exclusions),
             "class_distribution": class_dist,
             "exclusions": exclusions[:50],  # Return up to 50 for inspection

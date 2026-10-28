@@ -182,6 +182,7 @@ async def analyze_multimodal_differential_evidence(
     channels = list(STANDARD_16_CHANNELS)
     true_label = None
     target_subject_id = subject_id
+    sub = None
 
     # 1. Resolve EEG modality
     if eeg_file is not None and eeg_file.filename:
@@ -222,6 +223,13 @@ async def analyze_multimodal_differential_evidence(
 
     # Resolve target classification task
     resolved_task = target_task
+    if resolved_task:
+        norm_task = resolved_task.strip().upper()
+        if norm_task in ["SCZ_BD", "SCZ_VS_BD", "SCZ-VS-BD", "SCZ"]:
+            resolved_task = "SCZ_VS_BD"
+        elif norm_task in ["SZ_HC", "SZ_VS_HC", "SZ-VS-HC", "SZ_VS_HC_TECH_VAL", "ASEEG"]:
+            resolved_task = "SZ_VS_HC"
+
     if not resolved_task:
         if (eeg_file and eeg_file.filename and (eeg_file.filename.lower().startswith("sz") or eeg_file.filename.lower().startswith("n"))) or (target_subject_id and "aseeg" in target_subject_id.lower()):
             resolved_task = "SZ_VS_HC"
@@ -231,7 +239,8 @@ async def analyze_multimodal_differential_evidence(
             resolved_task = "SCZ_VS_BD"
 
     # Enforce task availability: SCZ vs BD requires genuine authorized B-SNIP data and checkpoint
-    if resolved_task == "SCZ_VS_BD" and eeg_file is not None:
+    is_demo_sub = bool(sub and sub.get("is_synthetic"))
+    if resolved_task == "SCZ_VS_BD" and not is_demo_sub:
         target_cp = CHECKPOINTS_DIR / "scz_bd_model.pt"
         if not target_cp.exists():
             raise HTTPException(

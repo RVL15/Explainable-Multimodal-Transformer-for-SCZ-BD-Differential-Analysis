@@ -149,13 +149,31 @@ class EEGCNNTransformer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Standard forward pass for batched windows.
-        x: (batch_size, num_channels, time_points)
-        Returns: logits of shape (batch_size, num_classes)
+        Forward pass for either:
+        - 3D batched windows: (batch_size, num_channels, time_points) -> (batch_size, num_classes)
+        - 4D batched subjects/windows: (batch_size, num_windows, num_channels, time_points) -> (batch_size, num_classes)
         """
-        window_emb = self.extract_window_features(x)
-        logits = self.classifier(window_emb)
-        return logits
+        if x.dim() == 4:
+            B, W, C, T = x.shape
+            x_flat = x.view(B * W, C, T)
+            window_emb = self.extract_window_features(x_flat) # (B*W, d_model)
+            window_emb = window_emb.view(B, W, -1)
+            if B == 1:
+                subject_rep, _ = self.subject_pooler(window_emb.squeeze(0))
+            else:
+                reps = []
+                for b in range(B):
+                    s_rep, _ = self.subject_pooler(window_emb[b])
+                    reps.append(s_rep)
+                subject_rep = torch.cat(reps, dim=0)
+            logits = self.classifier(subject_rep)
+            return logits
+        elif x.dim() == 3:
+            window_emb = self.extract_window_features(x)
+            logits = self.classifier(window_emb)
+            return logits
+        else:
+            raise ValueError(f"Expected 3D or 4D tensor, got shape {x.shape}")
 
     def forward_subject(self, windows: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
